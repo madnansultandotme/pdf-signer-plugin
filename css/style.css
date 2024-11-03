@@ -8,63 +8,121 @@ body {
     padding: 20px;
 }
 
-/* Container for the form */
 .form-container {
     max-width: 600px;
-    margin: 0 auto;
-    background: white;
+    margin: auto;
     padding: 20px;
-    border-radius: 8px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
 }
 
-/* Form heading */
 .form-container h2 {
     text-align: center;
     color: #333;
 }
 
-/* Form labels */
-label {
+.form-container label {
     display: block;
     margin: 10px 0 5px;
     font-weight: bold;
     color: #555;
 }
 
-/* Input fields */
-input[type="text"],
-input[type="email"],
-input[type="file"] {
+.form-container input[type="text"],
+.form-container input[type="file"],
+.form-container button {
     width: 100%;
     padding: 10px;
+    margin-bottom: 15px;
     border: 1px solid #ccc;
     border-radius: 4px;
-    margin-bottom: 15px;
+    box-sizing: border-box;
     font-size: 16px;
 }
 
-/* Submit button styling */
-button {
-    background-color: #28a745;
+.form-container input[type="text"]:focus,
+.form-container input[type="date"]:focus,
+.form-container input[type="file"]:focus,
+.form-container button:hover {
+    border-color: #007BFF;
+    outline: none;
+}
+
+.form-container button {
+    background-color: #007BFF;
     color: white;
-    padding: 10px 15px;
-    border: none;
-    border-radius: 4px;
     cursor: pointer;
-    font-size: 16px;
-    transition: background-color 0.3s;
-    width: 100%;
+}
+/* //date input styling */
+input[type="date"]::placeholder {
+    color: transparent; /* This hides the placeholder text */
 }
 
-/* Submit button hover effect */
-button:hover {
-    background-color: #218838;
+input[type="date"] {
+    /* Optional: You can set the following styles as well */
+    width: 100px; /* Adjust the width as needed */
+    padding: 5px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 16px; /* Adjust font size */
+    margin-bottom: 10px; /* Space below the input */
 }
 
+
+
+.form-container button:hover {
+    background-color: #0056b3;
+}
 /* Error message styling */
 .error-message {
     color: red;
     font-size: 14px;
     margin-top: 10px;
 }
+/* pop up styling */
+.modal {
+    display: none; /* Hidden by default */
+    position: fixed; /* Stay in place */
+    z-index: 1000; /* Sit on top */
+    left: 0;
+    top: 0;
+    width: 100%; /* Full width */
+    height: 100%; /* Full height */
+    overflow: auto; /* Enable scroll if needed */
+    background-color: rgba(0, 0, 0, 0.5); /* Black w/ opacity */
+}
+
+.modal-content {
+    background-color: #fefefe;
+    margin: 15% auto; /* 15% from the top and centered */
+    padding: 20px;
+    border: 1px solid #888;
+    width: 80%; /* Could be more or less, depending on screen size */
+    text-align: center;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+h2 {
+    color: #4CAF50; /* Green */
+}
+
+p {
+    color: #333;
+}
+
+.close {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+}
+
+.close:hover,
+.close:focus {
+    color: black;
+    text-decoration: none;
+    cursor: pointer;
+}
+/* End of style.css */

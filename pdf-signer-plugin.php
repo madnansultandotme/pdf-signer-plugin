@@ -46,9 +46,16 @@ class PDFSignerPlugin {
         $placeholders = ['fullname', 'email', 'date'];
         foreach ($placeholders as $placeholder) {
             echo "<label for='{$placeholder}'>" . ucfirst($placeholder) . ":</label>";
-            echo "<input type='text' name='{$placeholder}' required><br>";
+            if ($placeholder === 'date') {
+                echo "<input type='date' name='{$placeholder}' required class='date-input'><br>";
+            }
+             else {
+                echo "<input type='text' name='{$placeholder}' required><br>";
+            }
+
         }
     }
+    
 
     public static function handle_submission() {
         $fullname = sanitize_text_field($_POST['fullname']);
@@ -86,10 +93,40 @@ class PDFSignerPlugin {
         // echo "<p>Contract generated and sent to the admin successfully!</p>";
         // Remove signature after generating PDF
     // Reset fields (display message)
-    echo "<script>
-            alert('Contract generated and sent to the admin successfully!');
-            window.location.href = window.location.href;
-          </script>";
+ // Reset fields (display message)
+ // Reset fields (display message)
+ echo "<div id='success-modal' class='modal'>
+ <div class='modal-content'>
+     <span class='close'>&times;</span>
+     <h2>Success!</h2>
+     <p>Contract generated and sent to the admin successfully!</p>
+ </div>
+</div>
+<script>
+ var modal = document.getElementById('success-modal');
+ var span = document.getElementsByClassName('close')[0];
+ var isClosed = false; // Flag to track if modal has been closed
+
+ modal.style.display = 'block';
+
+ span.onclick = function() {
+     modal.style.display = 'none';
+     if (!isClosed) {
+         isClosed = true; // Set flag to true on first close
+          window.location.href = window.location.href; 
+     }
+ }
+
+ window.onclick = function(event) {
+     if (event.target == modal) {
+         modal.style.display = 'none';
+         if (!isClosed) {
+             isClosed = true; // Set flag to true on first close
+             window.location.href = window.location.href; 
+         }
+     }
+ }
+</script>";
     }
 
     private static function generate_html($fullname, $email, $date, $signaturePath, $templateFile) {
