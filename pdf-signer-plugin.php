@@ -2,7 +2,7 @@
 /*
 Plugin Name: PDF Signer Plugin with Signature Capture
 Description: Allows users to edit a contract, capture a signature, generate a PDF, and email it to the admin.
-Version: 1.1
+Version: 1.3
 Author: Zeppelin Team
 */
 
@@ -10,6 +10,13 @@ require_once __DIR__ . '/vendor/autoload.php';
 use Dompdf\Dompdf;
 
 class PDFSignerPlugin {
+    const OPTION_TEMPLATE = 'pdf_signer_selected_template';
+
+    public static function init() {
+        add_shortcode('pdf_signer_form', [self::class, 'display_form']);
+        add_action('admin_menu', [self::class, 'add_admin_menu']);
+        add_action('admin_init', [self::class, 'handle_template_upload']);
+    }
 
     public static function display_form() {
         ob_start();
@@ -55,9 +62,12 @@ class PDFSignerPlugin {
             echo "<p>Error uploading signature.</p>";
             return;
         }
+
+        // Get selected template
+        $selectedTemplate = get_option(self::OPTION_TEMPLATE, 'template.html');
     
-        // Generate HTML content from the template file
-        $htmlContent = self::generate_html($fullname, $email, $date, $signaturePath);
+        // Generate HTML content from the selected template file
+        $htmlContent = self::generate_html($fullname, $email, $date, $signaturePath, $selectedTemplate);
     
         // Convert HTML to PDF
         $pdfPath = __DIR__ . '/contract.pdf';
@@ -66,17 +76,16 @@ class PDFSignerPlugin {
         // Send the PDF to the admin
         self::send_email_with_pdf($pdfPath);
     
-        // Remove the signature image after sending the email
+        // Remove signature after generating PDF
         unlink($signaturePath);
-
-        // Reset the fields
+    
+        // Reset fields (display message)
         echo "<p>Contract generated and sent to the admin successfully!</p>";
-        echo '<script>document.querySelector("form").reset();</script>'; // Reset form fields using JavaScript
     }
 
-    private static function generate_html($fullname, $email, $date, $signaturePath) {
+    private static function generate_html($fullname, $email, $date, $signaturePath, $templateFile) {
         // Load the HTML template
-        $templatePath = __DIR__ . '/template.html'; // Path to your template file
+        $templatePath = __DIR__ . '/' . $templateFile; // Path to your selected template file
         $htmlContent = file_get_contents($templatePath);
 
         // Replace placeholders with actual values
@@ -84,21 +93,19 @@ class PDFSignerPlugin {
         $htmlContent = str_replace('${email}', $email, $htmlContent);
         $htmlContent = str_replace('${date}', $date, $htmlContent);
         
-        // Use plugins_url to create a full URL for the signature image
-        $signatureUrl = plugins_url('signature.png', __FILE__);
-        $htmlContent = str_replace('${signature}', $signatureUrl, $htmlContent);
+        // Ensure the signature is properly embedded
+        $signatureData = file_get_contents($signaturePath);
+        $signatureBase64 = 'data:image/png;base64,' . base64_encode($signatureData);
+        $htmlContent = str_replace('${signature}', $signatureBase64, $htmlContent);
 
         return $htmlContent;
     }
 
     private static function convert_html_to_pdf($htmlContent, $pdfFile) {
         $dompdf = new Dompdf();
-
-        // Enable remote file access
         $options = $dompdf->getOptions();
         $options->set('isRemoteEnabled', true);
         $dompdf->setOptions($options);
-
         $dompdf->loadHtml($htmlContent);
         $dompdf->setPaper('A4', 'portrait');
         $dompdf->render();
@@ -113,7 +120,62 @@ class PDFSignerPlugin {
         $attachments = [$pdfFile];
         wp_mail($admin_email, $subject, $message, $headers, $attachments);
     }
+
+    public static function add_admin_menu() {
+        add_menu_page('PDF Signer Settings', 'PDF Signer', 'manage_options', 'pdf-signer', [self::class, 'settings_page']);
+    }
+
+    public static function settings_page() {
+        ?>
+        <div class="wrap">
+            <h1>PDF Signer Plugin Settings</h1>
+            <form method="post" action="" enctype="multipart/form-data">
+                <h2>Upload Template</h2>
+                <input type="file" name="contract_template" accept=".html" required>
+                <button type="submit" name="upload_template">Upload Template</button>
+            </form>
+
+            <h2>Select Template</h2>
+            <form method="post">
+                <?php
+                $templates = glob(__DIR__ . '/*.html');
+                $selectedTemplate = get_option(self::OPTION_TEMPLATE, 'template.html');
+                ?>
+                <select name="selected_template">
+                    <?php foreach ($templates as $template): ?>
+                        <option value="<?= basename($template); ?>" <?= selected($selectedTemplate, basename($template)); ?>>
+                            <?= basename($template); ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+                <button type="submit" name="set_template">Set Template</button>
+            </form>
+        </div>
+        <?php
+        self::handle_template_upload();
+        self::set_template();
+    }
+
+    public static function handle_template_upload() {
+        if (isset($_POST['upload_template']) && !empty($_FILES['contract_template'])) {
+            $uploadedFile = $_FILES['contract_template'];
+            $uploadDir = __DIR__ . '/';
+            $uploadFilePath = $uploadDir . basename($uploadedFile['name']);
+
+            if (move_uploaded_file($uploadedFile['tmp_name'], $uploadFilePath)) {
+                echo "<p>Template uploaded successfully!</p>";
+            } else {
+                echo "<p>Error uploading template.</p>";
+            }
+        }
+    }
+
+    public static function set_template() {
+        if (isset($_POST['set_template']) && !empty($_POST['selected_template'])) {
+            update_option(self::OPTION_TEMPLATE, sanitize_file_name($_POST['selected_template']));
+            echo "<p>Template selected successfully!</p>";
+        }
+    }
 }
 
-// Register the shortcode after the class definition
-add_shortcode('pdf_signer_form', ['PDFSignerPlugin', 'display_form']);
+PDFSignerPlugin::init();
