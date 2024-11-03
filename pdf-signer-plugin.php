@@ -183,19 +183,28 @@ class PDFSignerPlugin {
     }
 
     public static function settings_page() {
+        // Ensure templates directory exists
+        $templatesDir = __DIR__ . '/../templates';
+        if (!is_dir($templatesDir)) {
+            mkdir($templatesDir, 0777, true);
+        }
+    
         ?>
         <div class="wrap">
             <h1>PDF Signer Plugin Settings</h1>
+    
+            <!-- Upload Template Section -->
             <form method="post" action="" enctype="multipart/form-data">
                 <h2>Upload Template</h2>
                 <input type="file" name="contract_template" accept=".html" required>
                 <button type="submit" name="upload_template">Upload Template</button>
             </form>
-
+    
+            <!-- Select Template Section -->
             <h2>Select Template</h2>
             <form method="post">
                 <?php
-                $templates = glob(__DIR__ . '/*.html');
+                $templates = glob($templatesDir . '/*.html'); // Get HTML files from the templates directory
                 $selectedTemplate = get_option(self::OPTION_TEMPLATE, 'template.html');
                 ?>
                 <select name="selected_template">
@@ -209,30 +218,38 @@ class PDFSignerPlugin {
             </form>
         </div>
         <?php
-        self::handle_template_upload();
+    
+        // Handle template upload and selection
+        self::handle_template_upload($templatesDir);
         self::set_template();
     }
+    
 
-    public static function handle_template_upload() {
-        if (isset($_POST['upload_template']) && !empty($_FILES['contract_template'])) {
-            $uploadedFile = $_FILES['contract_template'];
-            $uploadDir = __DIR__ . '/';
-            $uploadFilePath = $uploadDir . basename($uploadedFile['name']);
-
-            if (move_uploaded_file($uploadedFile['tmp_name'], $uploadFilePath)) {
-                echo "<p>Template uploaded successfully!</p>";
+    public static function handle_template_upload($templatesDir) {
+        if (isset($_POST['upload_template']) && isset($_FILES['contract_template'])) {
+            $template = $_FILES['contract_template'];
+            
+            if ($template['error'] === UPLOAD_ERR_OK) {
+                $fileName = basename($template['name']);
+                $targetPath = $templatesDir . '/' . $fileName;
+    
+                // Move uploaded template to templates directory
+                move_uploaded_file($template['tmp_name'], $targetPath);
+    
+                echo "<p>Template uploaded successfully.</p>";
             } else {
                 echo "<p>Error uploading template.</p>";
             }
         }
     }
-
     public static function set_template() {
-        if (isset($_POST['set_template']) && !empty($_POST['selected_template'])) {
-            update_option(self::OPTION_TEMPLATE, sanitize_file_name($_POST['selected_template']));
-            echo "<p>Template selected successfully!</p>";
+        if (isset($_POST['set_template'])) {
+            $selectedTemplate = sanitize_text_field($_POST['selected_template']);
+            update_option(self::OPTION_TEMPLATE, $selectedTemplate);
+            echo "<p>Template selected: " . esc_html($selectedTemplate) . "</p>";
         }
     }
+    
 }
 
 PDFSignerPlugin::init();
