@@ -7,22 +7,64 @@
     <title>Contract Agreement</title>
     <style>
         body {
-            font-family: Arial, sans-serif;
+            font-family: 'Arial', sans-serif;
+            background-color: #f4f4f9;
+            color: #333;
+            margin: 0;
+            padding: 0;
         }
 
         h1 {
             text-align: center;
+            color: #4a90e2;
+            margin-top: 20px;
         }
 
         .contract-details {
-            margin: 20px;
+            background-color: #fff;
+            margin: 20px auto;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            max-width: 800px;
+        }
+
+        h2 {
+            color: #4a90e2;
+            border-bottom: 2px solid #4a90e2;
+            padding-bottom: 5px;
+        }
+
+        ol {
+            padding-left: 20px;
+        }
+
+        ol li {
+            margin-bottom: 10px;
+        }
+
+        p {
+            line-height: 1.6;
         }
 
         img.signature {
             max-width: 200px;
             height: auto;
+            display: block;
+            margin-top: 10px;
         }
-        /* Adjust size as needed */
+
+        .contact-info {
+            margin-top: 20px;
+        }
+
+        .contact-info p {
+            margin: 5px 0;
+        }
+
+        strong {
+            color: #4a90e2;
+        }
     </style>
 </head>
 
@@ -30,8 +72,20 @@
     <h1>Contract Agreement</h1>
     <div class="contract-details">
         <p>This contract is made on <strong>${date}</strong> between <strong>${fullname}</strong>.</p>
-        <p>Contact Information:</p>
-        <p>Email: <strong>${email}</strong></p>
+        <div class="contact-info">
+            <p>Contact Information:</p>
+            <p>Email: <strong>${email}</strong></p>
+        </div>
+        <h2>Terms and Conditions</h2>
+        <ol>
+            <li>The parties agree to the terms outlined in this contract.</li>
+            <li>All services provided will be completed in a timely and professional manner.</li>
+            <li>Payment terms are as agreed upon and specified in the contract.</li>
+            <li>Any disputes arising from this contract will be resolved through mediation or arbitration.</li>
+            <li>Both parties agree to maintain confidentiality regarding all aspects of this contract.</li>
+            <li>This contract is governed by the laws of the applicable jurisdiction.</li>
+            <li>Any amendments to this contract must be made in writing and signed by both parties.</li>
+        </ol>
         <p>Signature:</p>
         <img class="signature" src="${signature}" alt="Signature">
     </div>

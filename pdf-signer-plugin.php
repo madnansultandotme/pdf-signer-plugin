@@ -17,22 +17,25 @@ class PDFSignerPlugin {
         add_action('admin_menu', [self::class, 'add_admin_menu']);
         add_action('admin_init', [self::class, 'handle_template_upload']);
     }
-
     public static function display_form() {
         ob_start();
         ?>
-        <form method="post" action="" enctype="multipart/form-data">
-            <?php
-            if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-                self::handle_submission();
-            } else {
-                self::render_template_form();
-            }
-            ?>
-            <label for="signature">Upload Signature:</label>
-            <input type="file" name="signature" accept="image/*" required><br>
-            <button type="submit">Generate Contract PDF</button>
-        </form>
+        <link rel="stylesheet" href="<?php echo plugin_dir_url(__FILE__) . 'css/style.css'; ?>">
+        <div class="form-container">
+            <h2>Contract PDF Generator</h2>
+            <form method="post" action="" enctype="multipart/form-data">
+                <?php
+                if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+                    self::handle_submission();
+                } else {
+                    self::render_template_form();
+                }
+                ?>
+                <label for="signature">Upload Signature:</label>
+                <input type="file" name="signature" accept="image/*" required><br>
+                <button type="submit">Generate Contract PDF</button>
+            </form>
+        </div>
         <?php
     
         return ob_get_clean();
