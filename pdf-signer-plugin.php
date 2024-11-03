@@ -23,6 +23,8 @@ class PDFSignerPlugin {
         ob_start();
         ?>
         <link rel="stylesheet" href="<?php echo plugin_dir_url(__FILE__) . 'css/style.css'; ?>">
+        <script src="<?php echo plugin_dir_url(__FILE__) . 'js/canvas.js'; ?>"></script>
+        
         <div class="form-container">
             <h2>Contract PDF Generator</h2>
             <form method="post" action="" enctype="multipart/form-data">
@@ -33,14 +35,28 @@ class PDFSignerPlugin {
                     self::render_template_form();
                 }
                 ?>
-                <label for="signature">Upload Signature:</label>
-                <input type="file" name="signature" accept=".png" required><br>
-                <button type="submit">Generate Contract PDF</button>
+                
+                <label for="signatureUpload">Upload Signature:</label>
+                <input type="file" name="signatureUpload" accept=".png" id="signatureUpload"><br>
+                
+                <h3>Or Draw Your Signature:</h3>
+                <canvas id="signatureCanvas" width="600" height="240" style="border: 1px solid #000;"></canvas><br>
+                <input type="hidden" name="signatureData" id="signatureData">
+                <div class="canvasButtons">
+                <button type="button" onclick="clearCanvas()">Clear Canvas</button>
+                <button type="button" id="saveCanvasButton" onclick="saveSignature()">Save Signature from Canvas</button>
+                </div>
+                
+                <p>Save the signature to Generate Contract</p>
+                <button type="submit" id="generateContractButton" disabled>Generate Contract PDF</button>
+                <p>Please choose either to upload your signature or draw one. You cannot do both.</p>
             </form>
         </div>
         <?php
         return ob_get_clean();
     }
+    
+    
 
     private static function render_template_form() {
         // Define placeholders
@@ -56,18 +72,19 @@ class PDFSignerPlugin {
     }
 
     public static function handle_submission() {
+        // Check if required fields are set
         if (!isset($_POST['fullname'], $_POST['email'], $_POST['date'])) {
             echo "<p>All fields are required.</p>";
             return;
         }
-
+    
         $fullname = sanitize_text_field($_POST['fullname']);
         $email = sanitize_email($_POST['email']);
         $date = sanitize_text_field($_POST['date']);
-    
+        
         // Generate unique ID for this submission
         $uniqueId = uniqid('contract_', true);
-    
+        
         // Define paths for signatures and contracts
         $signaturesDir = __DIR__ . '/signatures/';
         $contractsDir = __DIR__ . '/contracts/';
@@ -79,28 +96,38 @@ class PDFSignerPlugin {
         if (!file_exists($contractsDir)) {
             mkdir($contractsDir, 0777, true);
         }
+        
+        // Initialize signature path
+        $signaturePath = '';
     
-        // Handle signature upload
-        $signature = $_FILES['signature'];
-        $signaturePath = $signaturesDir . $uniqueId . '.png'; // Path to save the signature
-    
-        if ($signature['error'] === UPLOAD_ERR_OK) {
-            move_uploaded_file($signature['tmp_name'], $signaturePath);
+        // Check for uploaded signature
+        if (isset($_FILES['signatureUpload']) && $_FILES['signatureUpload']['error'] === UPLOAD_ERR_OK) {
+            $signaturePath = $signaturesDir . $uniqueId . '_upload.png'; // Path to save the uploaded signature
+            move_uploaded_file($_FILES['signatureUpload']['tmp_name'], $signaturePath);
+        }
+        // Check for canvas signature data
+        elseif (isset($_POST['signatureData']) && !empty($_POST['signatureData'])) {
+            // Handle the signature drawn on the canvas
+            $signatureData = $_POST['signatureData'];
+            $signatureData = str_replace('data:image/png;base64,', '', $signatureData);
+            $signatureData = base64_decode($signatureData);
+            $signaturePath = $signaturesDir . $uniqueId . '_canvas.png'; // Path to save the canvas signature
+            file_put_contents($signaturePath, $signatureData);
         } else {
-            echo "<p>Error uploading signature: " . $signature['error'] . "</p>";
+            echo "<p>No signature provided. Please upload or draw a signature.</p>";
             return;
         }
     
         // Get selected template
         $selectedTemplate = get_option(self::OPTION_TEMPLATE, 'template.html');
-    
+        
         // Generate HTML content from the selected template file
         $htmlContent = self::generate_html($fullname, $email, $date, $signaturePath, $selectedTemplate);
-    
+        
         // Convert HTML to PDF
         $pdfPath = $contractsDir . $uniqueId . '.pdf'; // Path to save the contract PDF
         self::convert_html_to_pdf($htmlContent, $pdfPath);
-    
+        
         // Log contract generation date
         global $wpdb;
         $table_name = $wpdb->prefix . 'pdf_signer_contracts';
@@ -109,10 +136,10 @@ class PDFSignerPlugin {
             ['generated_at' => current_time('mysql')],
             ['%s']
         );
-
+    
         // Send the PDF to the admin
         self::send_email_with_pdf($pdfPath);
-    
+        
         // Display success message
         echo "<div id='success-modal' class='modal'>
             <div class='modal-content'>
@@ -147,6 +174,7 @@ class PDFSignerPlugin {
         }
         </script>";
     }
+    
 
     private static function generate_html($fullname, $email, $date, $signaturePath, $templateFile) {
         // Load the HTML template

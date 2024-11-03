@@ -44,15 +44,28 @@ body {
 .form-container input[type="text"]:focus,
 .form-container input[type="date"]:focus,
 .form-container input[type="file"]:focus,
-.form-container button:hover {
+/* .form-container button:hover {
     border-color: #007BFF;
     outline: none;
-}
+} */
 
 .form-container button {
     background-color: #007BFF;
     color: white;
     cursor: pointer;
+}
+.form-container button:disabled {
+    background-color: #ccc;
+    color: white;
+    cursor: not-allowed;
+}
+/* //Canvas button styling */
+.canvasButtons {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: row;
+    margin-top: 10px;
 }
 /* //date input styling */
 input[type="date"]::placeholder {
