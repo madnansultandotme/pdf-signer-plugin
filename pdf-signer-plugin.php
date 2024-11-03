@@ -16,7 +16,9 @@ class PDFSignerPlugin {
         add_shortcode('pdf_signer_form', [self::class, 'display_form']);
         add_action('admin_menu', [self::class, 'add_admin_menu']);
         add_action('admin_init', [self::class, 'handle_template_upload']);
+        register_activation_hook(__FILE__, 'pdf_signer_create_contracts_table');
     }
+
     public static function display_form() {
         ob_start();
         ?>
@@ -32,12 +34,11 @@ class PDFSignerPlugin {
                 }
                 ?>
                 <label for="signature">Upload Signature:</label>
-                 <input type="file" name="signature" accept=".png" required><br>
+                <input type="file" name="signature" accept=".png" required><br>
                 <button type="submit">Generate Contract PDF</button>
             </form>
         </div>
         <?php
-    
         return ob_get_clean();
     }
 
@@ -48,16 +49,18 @@ class PDFSignerPlugin {
             echo "<label for='{$placeholder}'>" . ucfirst($placeholder) . ":</label>";
             if ($placeholder === 'date') {
                 echo "<input type='date' name='{$placeholder}' required class='date-input'><br>";
-            }
-             else {
+            } else {
                 echo "<input type='text' name='{$placeholder}' required><br>";
             }
-
         }
     }
-    
 
     public static function handle_submission() {
+        if (!isset($_POST['fullname'], $_POST['email'], $_POST['date'])) {
+            echo "<p>All fields are required.</p>";
+            return;
+        }
+
         $fullname = sanitize_text_field($_POST['fullname']);
         $email = sanitize_email($_POST['email']);
         $date = sanitize_text_field($_POST['date']);
@@ -84,7 +87,7 @@ class PDFSignerPlugin {
         if ($signature['error'] === UPLOAD_ERR_OK) {
             move_uploaded_file($signature['tmp_name'], $signaturePath);
         } else {
-            echo "<p>Error uploading signature.</p>";
+            echo "<p>Error uploading signature: " . $signature['error'] . "</p>";
             return;
         }
     
@@ -98,19 +101,25 @@ class PDFSignerPlugin {
         $pdfPath = $contractsDir . $uniqueId . '.pdf'; // Path to save the contract PDF
         self::convert_html_to_pdf($htmlContent, $pdfPath);
     
+        // Log contract generation date
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'pdf_signer_contracts';
+        $wpdb->insert(
+            $table_name,
+            ['generated_at' => current_time('mysql')],
+            ['%s']
+        );
+
         // Send the PDF to the admin
         self::send_email_with_pdf($pdfPath);
     
-        // Remove signature after generating PDF
-        // unlink($signaturePath);
-    
         // Display success message
         echo "<div id='success-modal' class='modal'>
-        <div class='modal-content'>
-            <span class='close'>&times;</span>
-            <h2>Success!</h2>
-            <p>Contract generated and sent to the admin successfully!</p>
-        </div>
+            <div class='modal-content'>
+                <span class='close'>&times;</span>
+                <h2>Success!</h2>
+                <p>Contract generated and sent to the admin successfully!</p>
+            </div>
         </div>
         <script>
         var modal = document.getElementById('success-modal');
@@ -138,11 +147,10 @@ class PDFSignerPlugin {
         }
         </script>";
     }
-    
 
     private static function generate_html($fullname, $email, $date, $signaturePath, $templateFile) {
         // Load the HTML template
-        $templatePath = __DIR__ . '/' . $templateFile; // Path to your selected template file
+        $templatePath = __DIR__ . '/templates/' . $templateFile; // Path to your selected template file
         $htmlContent = file_get_contents($templatePath);
 
         // Replace placeholders with actual values
@@ -151,9 +159,11 @@ class PDFSignerPlugin {
         $htmlContent = str_replace('${date}', $date, $htmlContent);
         
         // Ensure the signature is properly embedded
-        $signatureData = file_get_contents($signaturePath);
-        $signatureBase64 = 'data:image/png;base64,' . base64_encode($signatureData);
-        $htmlContent = str_replace('${signature}', $signatureBase64, $htmlContent);
+        if (file_exists($signaturePath)) {
+            $signatureData = file_get_contents($signaturePath);
+            $signatureBase64 = 'data:image/png;base64,' . base64_encode($signatureData);
+            $htmlContent = str_replace('${signature}', $signatureBase64, $htmlContent);
+        }
 
         return $htmlContent;
     }
@@ -173,9 +183,8 @@ class PDFSignerPlugin {
         $admin_email = get_option('admin_email');
         $subject = 'Signed Contract';
         $message = 'Please find the attached signed contract.';
-        $headers = [];
         $attachments = [$pdfFile];
-        wp_mail($admin_email, $subject, $message, $headers, $attachments);
+        wp_mail($admin_email, $subject, $message, [], $attachments);
     }
 
     public static function add_admin_menu() {
@@ -183,73 +192,102 @@ class PDFSignerPlugin {
     }
 
     public static function settings_page() {
-        // Ensure templates directory exists
-        $templatesDir = __DIR__ . '/../templates';
-        if (!is_dir($templatesDir)) {
-            mkdir($templatesDir, 0777, true);
-        }
+        // Enqueue admin styles
+        wp_enqueue_style('pdf-signer-admin-css', plugin_dir_url(__FILE__) . 'css/admin.css');
+    
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'pdf_signer_contracts';
+        
+        // Calculate contract counts for each time frame
+        $count_this_week = $wpdb->get_var("SELECT COUNT(*) FROM $table_name WHERE YEARWEEK(generated_at, 1) = YEARWEEK(NOW(), 1)");
+        $count_last_month = $wpdb->get_var("SELECT COUNT(*) FROM $table_name WHERE YEAR(generated_at) = YEAR(NOW()) AND MONTH(generated_at) = MONTH(NOW()) - 1");
+        $count_last_year = $wpdb->get_var("SELECT COUNT(*) FROM $table_name WHERE YEAR(generated_at) = YEAR(NOW()) - 1");
+    
+        // Fetch templates from the templates directory
+        $templates_dir = plugin_dir_path(__FILE__) . 'templates/';
+        $templates = array_diff(scandir($templates_dir), array('..', '.')); // Exclude . and ..
+        
+        // Check if a template has been selected (for persistent dropdown value)
+        $selectedTemplate = isset($_POST['template_select']) ? $_POST['template_select'] : '';
     
         ?>
         <div class="wrap">
             <h1>PDF Signer Plugin Settings</h1>
     
-            <!-- Upload Template Section -->
-            <form method="post" action="" enctype="multipart/form-data">
-                <h2>Upload Template</h2>
-                <input type="file" name="contract_template" accept=".html" required>
-                <button type="submit" name="upload_template">Upload Template</button>
-            </form>
+            <!-- Display Contract Counts -->
+            <div class="contract-stats">
+                <h2>Contract Statistics</h2>
+                <p>Contracts generated this week: <?php echo $count_this_week; ?></p>
+                <p>Contracts generated last month: <?php echo $count_last_month; ?></p>
+                <p>Contracts generated last year: <?php echo $count_last_year; ?></p>
+            </div>
     
-            <!-- Select Template Section -->
-            <h2>Select Template</h2>
-            <form method="post">
-                <?php
-                $templates = glob($templatesDir . '/*.html'); // Get HTML files from the templates directory
-                $selectedTemplate = get_option(self::OPTION_TEMPLATE, 'template.html');
-                ?>
-                <select name="selected_template">
-                    <?php foreach ($templates as $template): ?>
-                        <option value="<?= basename($template); ?>" <?= selected($selectedTemplate, basename($template)); ?>>
-                            <?= basename($template); ?>
-                        </option>
-                    <?php endforeach; ?>
-                </select>
-                <button type="submit" name="set_template">Set Template</button>
-            </form>
+            <!-- Form Container -->
+            <div class="form-container">
+                <!-- Upload Template Form -->
+                <div class="form-group">
+                    <h2>Upload Template</h2>
+                    <form method="post" action="" enctype="multipart/form-data">
+                        <input type="file" name="contract_template" accept=".html" required>
+                        <button type="submit" name="upload_template">Upload Template</button>
+                    </form>
+                </div>
+    
+                <!-- Select Template Form -->
+                <div class="form-group">
+                    <h2>Select Template</h2>
+                    <form method="post" action="">
+                        <select name="template_select">
+                            <option value="">Select a template</option>
+                            <?php foreach ($templates as $template): ?>
+                                <option value="<?= basename($template); ?>" <?= selected($selectedTemplate, basename($template)); ?>>
+                                    <?= basename($template); ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                        <button type="submit" name="select_template">Select Template</button>
+                    </form>
+                </div>
+            </div>
         </div>
         <?php
-    
-        // Handle template upload and selection
-        self::handle_template_upload($templatesDir);
-        self::set_template();
     }
     
+    
 
-    public static function handle_template_upload($templatesDir) {
-        if (isset($_POST['upload_template']) && isset($_FILES['contract_template'])) {
-            $template = $_FILES['contract_template'];
-            
-            if ($template['error'] === UPLOAD_ERR_OK) {
-                $fileName = basename($template['name']);
-                $targetPath = $templatesDir . '/' . $fileName;
-    
-                // Move uploaded template to templates directory
-                move_uploaded_file($template['tmp_name'], $targetPath);
-    
-                echo "<p>Template uploaded successfully.</p>";
-            } else {
-                echo "<p>Error uploading template.</p>";
+    public static function handle_template_upload() {
+        if (isset($_POST['upload_template'])) {
+            if (!empty($_FILES['contract_template']['name'])) {
+                $uploadedFile = $_FILES['contract_template'];
+                $uploadDir = __DIR__ . '/templates/';
+
+                // Check for upload errors
+                if ($uploadedFile['error'] === UPLOAD_ERR_OK) {
+                    $targetFile = $uploadDir . basename($uploadedFile['name']);
+                    move_uploaded_file($uploadedFile['tmp_name'], $targetFile);
+                    echo "<p>Template uploaded successfully!</p>";
+                } else {
+                    echo "<p>Error uploading template: " . $uploadedFile['error'] . "</p>";
+                }
             }
         }
     }
-    public static function set_template() {
-        if (isset($_POST['set_template'])) {
-            $selectedTemplate = sanitize_text_field($_POST['selected_template']);
-            update_option(self::OPTION_TEMPLATE, $selectedTemplate);
-            echo "<p>Template selected: " . esc_html($selectedTemplate) . "</p>";
-        }
-    }
+}
+
+function pdf_signer_create_contracts_table() {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'pdf_signer_contracts';
     
+    $charset_collate = $wpdb->get_charset_collate();
+    
+    $sql = "CREATE TABLE $table_name (
+        id mediumint(9) NOT NULL AUTO_INCREMENT,
+        generated_at datetime DEFAULT CURRENT_TIMESTAMP NOT NULL,
+        PRIMARY KEY  (id)
+    ) $charset_collate;";
+    
+    require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
+    dbDelta($sql);
 }
 
 PDFSignerPlugin::init();

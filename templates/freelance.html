@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contract Agreement</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f8ff;
+            color: #333;
+        }
+
+        h1 {
+            text-align: center;
+            color: #4b0082;
+        }
+
+        .contract-details {
+            margin: 20px;
+            padding: 20px;
+            border: 2px solid #4b0082;
+            border-radius: 10px;
+            background-color: #e6e6fa;
+        }
+
+        p {
+            margin: 10px 0;
+        }
+
+        img.signature {
+            max-width: 200px;
+            height: auto;
+            border: 2px solid #4b0082;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Contract Agreement</h1>
+    <div class="contract-details">
+        <p>This contract is made on <strong>${date}</strong> between <strong>${fullname}</strong>.</p>
+        <p>Contact Information:</p>
+        <p>Email: <strong>${email}</strong></p>
+        <p>Signature:</p>
+        <img class="signature" src="${signature}" alt="Signature">
+    </div>
+</body>
+
+</html>
