@@ -32,7 +32,7 @@ class PDFSignerPlugin {
                 }
                 ?>
                 <label for="signature">Upload Signature:</label>
-                <input type="file" name="signature" accept="image/*" required><br>
+                 <input type="file" name="signature" accept=".png" required><br>
                 <button type="submit">Generate Contract PDF</button>
             </form>
         </div>
@@ -62,9 +62,24 @@ class PDFSignerPlugin {
         $email = sanitize_email($_POST['email']);
         $date = sanitize_text_field($_POST['date']);
     
+        // Generate unique ID for this submission
+        $uniqueId = uniqid('contract_', true);
+    
+        // Define paths for signatures and contracts
+        $signaturesDir = __DIR__ . '/signatures/';
+        $contractsDir = __DIR__ . '/contracts/';
+        
+        // Create directories if they don't exist
+        if (!file_exists($signaturesDir)) {
+            mkdir($signaturesDir, 0777, true);
+        }
+        if (!file_exists($contractsDir)) {
+            mkdir($contractsDir, 0777, true);
+        }
+    
         // Handle signature upload
         $signature = $_FILES['signature'];
-        $signaturePath = __DIR__ . '/signature.png'; // Define the path to save the signature
+        $signaturePath = $signaturesDir . $uniqueId . '.png'; // Path to save the signature
     
         if ($signature['error'] === UPLOAD_ERR_OK) {
             move_uploaded_file($signature['tmp_name'], $signaturePath);
@@ -72,7 +87,7 @@ class PDFSignerPlugin {
             echo "<p>Error uploading signature.</p>";
             return;
         }
-
+    
         // Get selected template
         $selectedTemplate = get_option(self::OPTION_TEMPLATE, 'template.html');
     
@@ -80,54 +95,50 @@ class PDFSignerPlugin {
         $htmlContent = self::generate_html($fullname, $email, $date, $signaturePath, $selectedTemplate);
     
         // Convert HTML to PDF
-        $pdfPath = __DIR__ . '/contract.pdf';
+        $pdfPath = $contractsDir . $uniqueId . '.pdf'; // Path to save the contract PDF
         self::convert_html_to_pdf($htmlContent, $pdfPath);
     
         // Send the PDF to the admin
         self::send_email_with_pdf($pdfPath);
     
         // Remove signature after generating PDF
-        unlink($signaturePath);
+        // unlink($signaturePath);
     
-        // Reset fields (display message)
-        // echo "<p>Contract generated and sent to the admin successfully!</p>";
-        // Remove signature after generating PDF
-    // Reset fields (display message)
- // Reset fields (display message)
- // Reset fields (display message)
- echo "<div id='success-modal' class='modal'>
- <div class='modal-content'>
-     <span class='close'>&times;</span>
-     <h2>Success!</h2>
-     <p>Contract generated and sent to the admin successfully!</p>
- </div>
-</div>
-<script>
- var modal = document.getElementById('success-modal');
- var span = document.getElementsByClassName('close')[0];
- var isClosed = false; // Flag to track if modal has been closed
-
- modal.style.display = 'block';
-
- span.onclick = function() {
-     modal.style.display = 'none';
-     if (!isClosed) {
-         isClosed = true; // Set flag to true on first close
-          window.location.href = window.location.href; 
-     }
- }
-
- window.onclick = function(event) {
-     if (event.target == modal) {
-         modal.style.display = 'none';
-         if (!isClosed) {
-             isClosed = true; // Set flag to true on first close
-             window.location.href = window.location.href; 
-         }
-     }
- }
-</script>";
+        // Display success message
+        echo "<div id='success-modal' class='modal'>
+        <div class='modal-content'>
+            <span class='close'>&times;</span>
+            <h2>Success!</h2>
+            <p>Contract generated and sent to the admin successfully!</p>
+        </div>
+        </div>
+        <script>
+        var modal = document.getElementById('success-modal');
+        var span = document.getElementsByClassName('close')[0];
+        var isClosed = false; // Flag to track if modal has been closed
+    
+        modal.style.display = 'block';
+    
+        span.onclick = function() {
+            modal.style.display = 'none';
+            if (!isClosed) {
+                isClosed = true; // Set flag to true on first close
+                window.location.href = window.location.href; 
+            }
+        }
+    
+        window.onclick = function(event) {
+            if (event.target == modal) {
+                modal.style.display = 'none';
+                if (!isClosed) {
+                    isClosed = true; // Set flag to true on first close
+                    window.location.href = window.location.href; 
+                }
+            }
+        }
+        </script>";
     }
+    
 
     private static function generate_html($fullname, $email, $date, $signaturePath, $templateFile) {
         // Load the HTML template
