@@ -83,7 +83,13 @@ class PDFSignerPlugin {
         unlink($signaturePath);
     
         // Reset fields (display message)
-        echo "<p>Contract generated and sent to the admin successfully!</p>";
+        // echo "<p>Contract generated and sent to the admin successfully!</p>";
+        // Remove signature after generating PDF
+    // Reset fields (display message)
+    echo "<script>
+            alert('Contract generated and sent to the admin successfully!');
+            window.location.href = window.location.href;
+          </script>";
     }
 
     private static function generate_html($fullname, $email, $date, $signaturePath, $templateFile) {
