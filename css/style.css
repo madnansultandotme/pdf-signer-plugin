@@ -138,4 +138,44 @@ p {
     text-decoration: none;
     cursor: pointer;
 }
+/* Canvas Responsive Styling */
+/* Base styling for canvas and buttons */
+#signatureCanvas {
+    width: 100%;
+    max-width: 600px; /* Ensures the canvas doesn’t grow beyond its original width */
+    height: auto; /* Maintains the aspect ratio */
+    border: 1px solid #000;
+}
+
+.canvasButtons {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    margin-top: 10px;
+}
+
+.canvasButtons button {
+    padding: 8px 12px;
+    font-size: 1rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    #signatureCanvas {
+        max-width: 90%;
+    }
+    
+    .canvasButtons {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .canvasButtons button {
+        width: 100%;
+        max-width: 300px;
+        margin-bottom: 8px;
+    }
+}
+
 /* End of style.css */
+
