@@ -1,11 +1,4 @@
-<<<<<<< HEAD
-/*
-Plugin Name: PDF Signer Plugin with Signature Capture
-Description: Allows users to edit a contract, capture a signature, generate a PDF, and email it to the admin.
-Version: 1.3
-Author: Shoaib Ud Din
-*/
-=======
+
 # PDF Signer Plugin
 
 The **PDF Signer Plugin** allows users to sign PDF contracts by either uploading a signature or drawing one on a responsive canvas. It provides an easy way to generate, customize, and email signed PDF documents directly from the WordPress admin panel.
@@ -50,4 +43,4 @@ This project is licensed under the MIT License. See the LICENSE file for details
 ---
 
 This plugin simplifies contract signing workflows and document management for WordPress administrators.
->>>>>>> a4bb75dbf7a355fe5a5a6f8e98fbfbd76f991bd9
+
