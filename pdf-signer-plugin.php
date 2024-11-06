@@ -3,7 +3,7 @@
 Plugin Name: PDF Signer Plugin with Signature Capture
 Description: Allows users to edit a contract, capture a signature, generate a PDF, and email it to the admin.
 Version: 1.3
-Author: Team Zeppelin
+Author: <a href='https://www.github.com/codebyshoaib/'>Shoaib Ud Din</a>
 */
 
 require_once __DIR__ . '/vendor/autoload.php';
@@ -146,6 +146,8 @@ class PDFSignerPlugin {
                 <span class='close'>&times;</span>
                 <h2>Success!</h2>
                 <p>Contract generated and sent to the admin successfully!</p>
+                 <a href='" . plugin_dir_url(__FILE__) . "contracts/{$uniqueId}.pdf' download='contract_{$uniqueId}.pdf'>Download PDF</a>
+
             </div>
         </div>
         <script>
@@ -222,7 +224,7 @@ class PDFSignerPlugin {
     public static function settings_page() {
         // Enqueue admin styles
         wp_enqueue_style('pdf-signer-admin-css', plugin_dir_url(__FILE__) . 'css/admin.css');
-    
+        
         global $wpdb;
         $table_name = $wpdb->prefix . 'pdf_signer_contracts';
         
@@ -230,14 +232,14 @@ class PDFSignerPlugin {
         $count_this_week = $wpdb->get_var("SELECT COUNT(*) FROM $table_name WHERE YEARWEEK(generated_at, 1) = YEARWEEK(NOW(), 1)");
         $count_last_month = $wpdb->get_var("SELECT COUNT(*) FROM $table_name WHERE YEAR(generated_at) = YEAR(NOW()) AND MONTH(generated_at) = MONTH(NOW()) - 1");
         $count_last_year = $wpdb->get_var("SELECT COUNT(*) FROM $table_name WHERE YEAR(generated_at) = YEAR(NOW()) - 1");
-    
+        
         // Fetch templates from the templates directory
         $templates_dir = plugin_dir_path(__FILE__) . 'templates/';
         $templates = array_diff(scandir($templates_dir), array('..', '.')); // Exclude . and ..
         
         // Check if a template has been selected (for persistent dropdown value)
         $selectedTemplate = isset($_POST['template_select']) ? $_POST['template_select'] : '';
-    
+        
         ?>
         <div class="wrap">
             <h1>PDF Signer Plugin Settings</h1>
@@ -261,7 +263,7 @@ class PDFSignerPlugin {
                     </form>
                 </div>
     
-                <!-- Select Template Form -->
+                <!-- Select Template Form
                 <div class="form-group">
                     <h2>Select Template</h2>
                     <form method="post" action="">
@@ -275,11 +277,37 @@ class PDFSignerPlugin {
                         </select>
                         <button type="submit" name="select_template">Select Template</button>
                     </form>
-                </div>
-            </div>
+                </div>-->
+            </div> 
+            <div class="template-list" style="font-family: 'Roboto', sans-serif; background-color: #fff; padding: 30px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); margin: 30px auto; width: 80%; max-width: 900px;">
+    <h2 style="font-size: 24px; font-weight: 600; color: #333; margin-bottom: 20px;">Uploaded Templates</h2>
+    <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
+        <thead>
+            <tr>
+                <th style="padding: 14px 18px; text-align: left; font-size: 16px; font-weight: 600; text-transform: uppercase; background-color: #333; color: white;">Template</th>
+                <th style="padding: 14px 18px; text-align: left; font-size: 16px; font-weight: 600; text-transform: uppercase; background-color: #333; color: white;">Shortcode</th>
+            </tr>
+        </thead>
+        <tbody>
+            <?php foreach ($templates as $template): ?>
+                <tr style="background-color: #f8f8f8;">
+                    <td style="padding: 12px 18px; font-size: 15px; color: #555; border-bottom: 1px solid #e5e5e5;"><?php echo basename($template); ?></td>
+                    <td style="padding: 12px 18px; font-size: 15px; color: #555; border-bottom: 1px solid #e5e5e5;"><a href="#" style="color: #007bff; text-decoration: none; font-weight: 600;">Shortcode: [pdf_signer_form template="<?= basename($template); ?>"]</a></td>
+                </tr>
+            <?php endforeach; ?>
+        </tbody>
+    </table>
+</div>
+
+<div class="credits">
+    <h3>This plugin was developed by <span> <a href="https://github.com/codebyshoaib/">Shoaib</a></span></h3>
+</div>
+
+
         </div>
         <?php
     }
+    
     
     
 
